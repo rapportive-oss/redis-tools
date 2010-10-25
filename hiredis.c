@@ -157,8 +157,10 @@ static redisReply *redisReadReply(int fd) {
 }
 
 /* Execute a command. This function is printf alike where
- * %s a plain string such as a key, %b a bulk payload. For instance:
+ * %s a plain string such as a key, %b a bulk payload, %d an integer.
+ * For instance:
  *
+ * redisCommand("SELECT %d", 3);
  * redisCommand("GET %s", mykey);
  * redisCommand("SET %s %b", mykey, somevalue, somevalue_len);
  *
@@ -186,6 +188,7 @@ redisReply *redisCommand(int fd, char *format, ...) {
     va_list ap;
     size_t size;
     char *arg, *c = format;
+    int intarg;
     sds cmd = sdsempty();
 
     /* Build the command string accordingly to protocol */
@@ -204,6 +207,10 @@ redisReply *redisCommand(int fd, char *format, ...) {
                 size = va_arg(ap,size_t);
                 cmd = sdscatprintf(cmd,"%zu\r\n",size);
                 cmd = sdscatlen(cmd,arg,size);
+                break;
+            case 'd':
+                intarg = va_arg(ap,int);
+                cmd = sdscatprintf(cmd,"%d",intarg);
                 break;
             case '%':
                 cmd = sdscat(cmd,"%");
