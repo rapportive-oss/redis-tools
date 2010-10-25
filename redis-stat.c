@@ -70,7 +70,7 @@ void usage(char *wrong) {
 " port <hostname>      Server port (default 6379)\n"
 " auth <password>      Server password (default none)\n"
 " delay <milliseconds> Delay between requests (default: 1000 ms, 1 second).\n"
-" samplesize <keys>    Number of keys to sample for 'vmpage' stat.\n"
+" samplesize <keys>    Number of keys to sample for 'vmpage' and 'ondisk-size'.\n"
 " logscale             User power-of-two logarithmic scale in graphs.\n"
 );
     exit(1);
