@@ -38,6 +38,7 @@ static struct config {
     int hostport;
     int delay;
     int stat; /* The kind of output to produce: STAT_* */
+    int sampledb;
     int samplesize;
     int logscale;
     char *auth;
@@ -71,6 +72,7 @@ void usage(char *wrong) {
 " auth <password>      Server password (default none)\n"
 " delay <milliseconds> Delay between requests (default: 1000 ms, 1 second).\n"
 " samplesize <keys>    Number of keys to sample for 'vmpage' and 'ondisk-size'.\n"
+" sampledb <db>        Which DB to sample for 'vmpage' and 'ondisk-size'.\n"
 " logscale             User power-of-two logarithmic scale in graphs.\n"
 );
     exit(1);
@@ -101,6 +103,9 @@ static int parseOptions(int argc, char **argv) {
             i++;
         } else if (!strcmp(argv[i],"samplesize") && !lastarg) {
             config.samplesize = atoi(argv[i+1]);
+            i++;
+        } else if (!strcmp(argv[i],"sampledb") && !lastarg) {
+            config.sampledb = atoi(argv[i+1]);
             i++;
         } else if (!strcmp(argv[i],"vmstat")) {
             config.stat = STAT_VMSTAT;
@@ -343,14 +348,20 @@ static size_t *sampleDataset(int fd, int type) {
     size_t totsl = 0, deltasum, avg;
     int j;
 
-    printf("Sampling %d random keys from DB 0...\n", config.samplesize);
+    r = redisCommand(fd, "SELECT %d", config.sampledb);
+    if (r->type == REDIS_REPLY_ERROR) {
+        printf("Error setting db num %d: %s\n", config.sampledb, r->reply);
+        exit(1);
+    }
+
+    printf("Sampling %d random keys from DB %d...\n", config.samplesize, config.sampledb);
     for (j = 0; j < config.samplesize; j++) {
         size_t sl = 0;
 
         /* Select a RANDOM key */
         r = redisCommand(fd,"RANDOMKEY");
         if (r->type == REDIS_REPLY_NIL) {
-            printf("Sorry but DB 0 is empty\n");
+            printf("Sorry but DB %d is empty\n", config.sampledb);
             exit(1);
         } else if (r->type == REDIS_REPLY_ERROR) {
             printf("Error: %s\n", r->reply);
@@ -564,6 +575,7 @@ int main(int argc, char **argv) {
     config.stat = STAT_OVERVIEW;
     config.delay = 1000;
     config.samplesize = 10000;
+    config.sampledb = 0;
     config.logscale = 0;
     config.auth = NULL;
 
